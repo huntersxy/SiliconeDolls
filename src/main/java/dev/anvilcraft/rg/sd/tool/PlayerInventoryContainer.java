@@ -4,6 +4,8 @@ import com.google.common.collect.ImmutableList;
 import dev.anvilcraft.rg.api.server.TranslationUtil;
 import dev.anvilcraft.rg.sd.entity.PlayerActionPack;
 import dev.anvilcraft.rg.sd.util.IServerPlayerInjector;
+//? if >=1.21.8
+/*import dev.anvilcraft.rg.sd.util.InventoryUtil;*/
 import dev.anvilcraft.rg.tools.chest.menu.control.AutoResetButton;
 import dev.anvilcraft.rg.tools.chest.menu.control.Button;
 import dev.anvilcraft.rg.tools.chest.menu.control.RadioList;
@@ -36,9 +38,15 @@ public class PlayerInventoryContainer extends PlayerContainer {
 
     public PlayerInventoryContainer(Player player) {
         super(player);
+        //? if <1.21.8 {
         this.items = this.player.getInventory().items;
         this.armor = this.player.getInventory().armor;
         this.offhand = this.player.getInventory().offhand;
+        //?} else {
+        /*this.items = InventoryUtil.getItems(player);
+        this.armor = InventoryUtil.getArmor(player);
+        this.offhand = InventoryUtil.getOffHand(player);
+         *///?}
         this.ap = ((IServerPlayerInjector) this.player).getActionPack();
         this.compartments = ImmutableList.of(this.items, this.armor, this.offhand, this.buttons);
         this.hotbar = PlayerInventoryContainer.createHotbarButton(this::addButton, this.ap);
@@ -128,18 +136,22 @@ public class PlayerInventoryContainer extends PlayerContainer {
         return new RadioList(hotBarList, true);
     }
 
+    //? if <1.21.10 {
     @Override
     public void startOpen(@NotNull Player player) {
         super.startOpen(player);
     }
+    //?}
 
     @Override
     public void tick() {
         super.tick();
         List<Button> buttonList = this.hotbar.getButtons();
         for (int i = 0; i < buttonList.size(); i++) {
+            //? if <1.21.8
             if (i == this.player.getInventory().selected) {
-                buttonList.get(i).turnOnWithoutFunction();
+            //? if >=1.21.8
+            /*if (i == InventoryUtil.getSelected(this.player)) {*/                buttonList.get(i).turnOnWithoutFunction();
             } else {
                 buttonList.get(i).turnOffWithoutFunction();
             }

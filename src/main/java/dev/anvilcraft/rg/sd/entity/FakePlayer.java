@@ -2,6 +2,7 @@ package dev.anvilcraft.rg.sd.entity;
 
 import com.mojang.authlib.GameProfile;
 import dev.anvilcraft.rg.sd.SiliconeDollsServerRules;
+//? if <1.21.8
 import dev.anvilcraft.rg.sd.compat.SableCompat;
 import dev.anvilcraft.rg.sd.util.IServerPlayerInjector;
 import net.minecraft.core.BlockPos;
@@ -11,9 +12,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.RemoteChatSession;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.network.protocol.PacketFlow;
+//? if <1.21.8
+import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
+//? if >=1.21.8
+/*import net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket;*/
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.network.protocol.game.ClientboundRotateHeadPacket;
-import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
 import net.minecraft.network.protocol.game.ServerboundClientCommandPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.TickTask;
@@ -21,6 +25,7 @@ import net.minecraft.server.level.ClientInformation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.CommonListenerCookie;
+//? if <1.21.10
 import net.minecraft.server.players.GameProfileCache;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -31,13 +36,19 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodData;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
+//? if <1.21.10
 import net.minecraft.world.level.block.entity.SkullBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+//? if <1.21.8
 import net.minecraft.world.level.portal.DimensionTransition;
+//? if >=1.21.8
+/*import net.minecraft.world.level.portal.TeleportTransition;*/
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 
+//? if >=1.21.8
+/*import java.util.Set;*/
 import java.util.function.Consumer;
 
 public class FakePlayer extends ServerPlayer {
@@ -65,6 +76,7 @@ public class FakePlayer extends ServerPlayer {
         boolean flying,
         @NotNull Consumer<FakePlayer> callback
     ) {
+        //? if <1.21.10 {
         GameProfileCache.setUsesAuthentication(false);
         GameProfile gameprofile;
         try {
@@ -74,6 +86,9 @@ public class FakePlayer extends ServerPlayer {
         } finally {
             GameProfileCache.setUsesAuthentication(server.isDedicatedServer() && server.usesAuthentication());
         }
+        //?} else {
+        /*GameProfile gameprofile = server.services().profileResolver().fetchByName(username).orElse(null);
+         *///?}
         if (gameprofile == null) {
             if (!SiliconeDollsServerRules.allowSpawningOfflinePlayers) {
                 return false;
@@ -83,6 +98,7 @@ public class FakePlayer extends ServerPlayer {
         }
         GameProfile finalGP = gameprofile;
         float yaw = facing.y, pitch = facing.x;
+        //? if <1.21.8 {
         SkullBlockEntity.fetchGameProfile(gameprofile.getName()).thenAcceptAsync(p -> {
             GameProfile current = finalGP;
             if (p.isPresent()) {
@@ -104,16 +120,82 @@ public class FakePlayer extends ServerPlayer {
             callback.accept(instance);
             instance.getAbilities().flying = flying && instance.getAbilities().mayfly;
         }, server);
+        //?}
+        //? if >=1.21.8 && <1.21.10 {
+        /*SkullBlockEntity.fetchGameProfile(gameprofile.getName()).thenAcceptAsync(
+            p -> {
+                GameProfile current = finalGP;
+                if (p.isPresent()) {
+                    current = p.get();
+                }
+                FakePlayer instance = new FakePlayer(server, level, current, ClientInformation.createDefault(), false);
+                instance.fixStartingPosition = () -> instance.snapTo(pos.x, pos.y, pos.z, yaw, pitch);
+                //noinspection deprecation
+                server.getPlayerList().placeNewPlayer(
+                    new FakeClientConnection(PacketFlow.SERVERBOUND),
+                    instance,
+                    new CommonListenerCookie(current, 0, instance.clientInformation(), false)
+                );
+                instance.teleportTo(level, pos.x, pos.y, pos.z, Set.of(), yaw, pitch, true);
+                instance.setHealth(20.0F);
+                instance.unsetRemoved();
+                AttributeInstance attribute = instance.getAttribute(Attributes.STEP_HEIGHT);
+                if (attribute != null) attribute.setBaseValue(0.6F);
+                instance.gameMode.changeGameModeForPlayer(gamemode);
+                server.getPlayerList()
+                    .broadcastAll(new ClientboundRotateHeadPacket(instance, (byte) (instance.yHeadRot * 256 / 360)), level.dimension());
+                server.getPlayerList().broadcastAll(new ClientboundRotateHeadPacket(instance, (byte)((int)(instance.yHeadRot * 256.0F / 360.0F))), level.dimension());
+                server.getPlayerList().broadcastAll(ClientboundEntityPositionSyncPacket.of(instance),  level.dimension());
+                instance.entityData.set(DATA_PLAYER_MODE_CUSTOMISATION, (byte) 0x7f);
+                callback.accept(instance);
+                //noinspection deprecation
+                instance.getAbilities().flying = flying && instance.getAbilities().mayfly;
+            }, server
+        );
+         *///?}
+        //? if >=1.21.10 {
+        /*server.execute(() -> {
+            GameProfile current = finalGP;
+            FakePlayer instance = new FakePlayer(server, level, current, ClientInformation.createDefault(), false);
+            instance.fixStartingPosition = () -> instance.snapTo(pos.x, pos.y, pos.z, yaw, pitch);
+            //noinspection deprecation
+            server.getPlayerList().placeNewPlayer(
+                new FakeClientConnection(PacketFlow.SERVERBOUND),
+                instance,
+                new CommonListenerCookie(current, 0, instance.clientInformation(), false)
+            );
+            instance.teleportTo(level, pos.x, pos.y, pos.z, Set.of(), yaw, pitch, true);
+            instance.setHealth(20.0F);
+            instance.unsetRemoved();
+            AttributeInstance attribute = instance.getAttribute(Attributes.STEP_HEIGHT);
+            if (attribute != null) attribute.setBaseValue(0.6F);
+            instance.gameMode.changeGameModeForPlayer(gamemode);
+            server.getPlayerList()
+                .broadcastAll(new ClientboundRotateHeadPacket(instance, (byte) (instance.yHeadRot * 256 / 360)), level.dimension());
+            server.getPlayerList().broadcastAll(new ClientboundRotateHeadPacket(instance, (byte)((int)(instance.yHeadRot * 256.0F / 360.0F))), level.dimension());
+            server.getPlayerList().broadcastAll(ClientboundEntityPositionSyncPacket.of(instance),  level.dimension());
+            instance.entityData.set(DATA_PLAYER_MODE_CUSTOMISATION, (byte) 0x7f);
+            callback.accept(instance);
+            //noinspection deprecation
+            instance.getAbilities().flying = flying && instance.getAbilities().mayfly;
+        });
+         *///?}
         return true;
     }
 
     @SuppressWarnings("UnusedReturnValue")
     public static @NotNull FakePlayer createShadow(@NotNull ServerPlayer player) {
+        //? if <1.21.10
         MinecraftServer server = player.getServer();
+        //? if >=1.21.10
+        /*MinecraftServer server = player.level().getServer();*/
         if (server == null) throw new IllegalStateException("Server is null");
         server.getPlayerList().remove(player);
         player.connection.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
+        //? if <1.21.8
         ServerLevel worldIn = player.serverLevel();//.getWorld(player.dimension);
+        //? if >=1.21.8
+        /*ServerLevel worldIn = player.level();//.getWorld(player.dimension);*/
         GameProfile gameprofile = player.getGameProfile();
         FakePlayer playerShadow = FakePlayer.create(server, worldIn, gameprofile, player.clientInformation(), true);
         RemoteChatSession session = player.getChatSession();
@@ -126,6 +208,7 @@ public class FakePlayer extends ServerPlayer {
         ((IServerPlayerInjector) playerShadow).getActionPack().copyFrom(((IServerPlayerInjector) player).getActionPack());
         AttributeInstance attribute = playerShadow.getAttribute(Attributes.STEP_HEIGHT);
         if (attribute != null) attribute.setBaseValue(0.6F);
+        //? if <1.21.10
         playerShadow.entityData.set(DATA_PLAYER_MODE_CUSTOMISATION, player.getEntityData().get(DATA_PLAYER_MODE_CUSTOMISATION));
         //noinspection resource
         server.getPlayerList().broadcastAll(new ClientboundRotateHeadPacket(playerShadow, (byte) (player.yHeadRot * 256 / 360)), playerShadow.level().dimension());
@@ -148,34 +231,64 @@ public class FakePlayer extends ServerPlayer {
         if (!this.isUsingItem()) super.onEquipItem(slot, oldItem, newItem);
     }
 
+    //? if <1.21.8 {
     @Override
     public void kill() {
         kill(Component.literal("Killed"));
     }
+    //?} else {
+    /*public void kill() {
+        kill(Component.literal("Killed"));
+    }
+     *///?}
 
     public void kill(@NotNull Component reason) {
         this.shakeOff();
         if (reason.getContents() instanceof TranslatableContents text && text.getKey().equals("multiplayer.disconnect.duplicate_login")) {
             this.connection.onDisconnect(new DisconnectionDetails(reason));
         } else {
+            //? if <1.21.8
             this.server.tell(new TickTask(this.server.getTickCount(), () -> this.connection.onDisconnect(new DisconnectionDetails(reason))));
+            //? if >=1.21.8 && <1.21.10 {
+            /*if (this.getServer() == null) return;
+            this.getServer()
+                .schedule(new TickTask(
+                    this.getServer().getTickCount(),
+                    () -> this.connection.onDisconnect(new DisconnectionDetails(reason))
+                ));
+             *///?}
+            //? if >=1.21.10 {
+            /*if (this.level().getServer() == null) return;
+            this.level().getServer()
+                .schedule(new TickTask(
+                    this.level().getServer().getTickCount(),
+                    () -> this.connection.onDisconnect(new DisconnectionDetails(reason))
+                ));
+             *///?}
         }
     }
 
     @Override
     public void tick() {
+        //? if <1.21.10
         MinecraftServer server1 = this.getServer();
+        //? if >=1.21.10
+        /*MinecraftServer server1 = this.level().getServer();*/
         if (server1 == null) return;
         if (server1.getTickCount() % 10 == 0) {
             this.connection.resetPosition();
             //noinspection resource
+            //? if <1.21.8
             this.serverLevel().getChunkSource().move(this);
+            //? if >=1.21.8
+            /*this.level().getChunkSource().move(this);*/
         }
         try {
             super.tick();
             this.doTick();
         } catch (NullPointerException ignored) {
         }
+        //? if <1.21.8
         SableCompat.afterFakePlayerTick(this);
     }
 
@@ -221,6 +334,7 @@ public class FakePlayer extends ServerPlayer {
         doCheckFallDamage(0.0, y, 0.0, onGround);
     }
 
+    //? if <1.21.8 {
     @Override
     public @NotNull BlockPos getBlockPosBelowThatAffectsMyMovement() {
         if (SableCompat.isPresent()) {
@@ -247,5 +361,26 @@ public class FakePlayer extends ServerPlayer {
         }
         return connection.player;
     }
+    //?} else {
+    /*@Override
+    public ServerPlayer teleport(@NotNull TeleportTransition serverLevel) {
+        super.teleport(serverLevel);
+        if (wonGame) {
+            ServerboundClientCommandPacket p = new ServerboundClientCommandPacket(ServerboundClientCommandPacket.Action.PERFORM_RESPAWN);
+            connection.handleClientCommand(p);
+        }
 
+        // If above branch was taken, *this* has been removed and replaced, the new instance has been set
+        // on 'our' connection (which is now theirs, but we still have a ref).
+        if (connection.player.isChangingDimension()) {
+            connection.player.hasChangedDimension();
+        }
+        return connection.player;
+    }
+
+    @Override
+    public void hasChangedDimension() {
+        super.hasChangedDimension();
+    }
+     *///?}
 }

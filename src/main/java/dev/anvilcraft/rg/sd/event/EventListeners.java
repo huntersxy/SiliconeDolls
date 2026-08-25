@@ -4,6 +4,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import dev.anvilcraft.rg.api.RGValidator;
 import dev.anvilcraft.rg.api.event.ServerAboutToStopEvent;
+//? if >=1.21.8
+/*import dev.anvilcraft.rg.RollingGate;*/
 import dev.anvilcraft.rg.sd.SiliconeDolls;
 import dev.anvilcraft.rg.sd.SiliconeDollsServerRules;
 import dev.anvilcraft.rg.sd.combat.CombatManager;
@@ -17,6 +19,10 @@ import dev.anvilcraft.rg.sd.util.RuleUtils;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+//? if >=1.21.8 {
+/*import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueOutput;
+ *///?}
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -51,7 +57,10 @@ public class EventListeners {
     public static void onPlayerTick(@NotNull PlayerTickEvent.Post event) {
         Player player = event.getEntity();
         //noinspection resource
+        //? if <1.21.10
         if (player.level().isClientSide) {
+        //? if >=1.21.10
+        /*if (player.level().isClientSide()) {*/
             if (player.containerMenu instanceof IClientMenuTickInjector tick) {
                 tick.siliconeDolls$tick();
             }
@@ -69,9 +78,15 @@ public class EventListeners {
                 event.setCancellationResult(InteractionResult.CONSUME);
             }
         } else if (player instanceof ServerPlayer serverPlayer && entity instanceof ServerPlayer otherPlayer) {
+            //? if <1.21.8
             boolean flag = RGValidator.CommandRuleValidator.hasPermission(() -> SiliconeDollsServerRules.openRealPlayerInventory, player.createCommandSourceStack());
-            flag = (entity instanceof FakePlayer fake && !fake.isShadow()) || flag;
-            if ((SiliconeDollsServerRules.openFakePlayerInventory || RuleUtils.openFakePlayerEnderChest(player)) && flag) {
+            //? if >=1.21.8 {
+            /*boolean flag = RGValidator.CommandRuleValidator.hasPermission(
+                () -> SiliconeDollsServerRules.openRealPlayerInventory,
+                serverPlayer.createCommandSourceStack()
+            );
+             *///?}
+            flag = (entity instanceof FakePlayer fake && !fake.isShadow()) || flag;            if ((SiliconeDollsServerRules.openFakePlayerInventory || RuleUtils.openFakePlayerEnderChest(player)) && flag) {
                 // 打开物品栏
                 InteractionResult result = PlayerContainer.openInventory(serverPlayer, otherPlayer);
                 if (result != InteractionResult.PASS) {
@@ -102,8 +117,23 @@ public class EventListeners {
             JsonObject fakePlayerList = new JsonObject();
             server.getPlayerList().getPlayers().forEach(player -> {
                 if (!(player instanceof FakePlayer)) return;
+                //? if <1.21.8
                 if (player.saveWithoutId(new CompoundTag()).contains("rolling_gate.NoResident")) return;
+                //? if >=1.21.8 {
+                /*CompoundTag tag;
+                try (
+                    ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(player.problemPath(), RollingGate.LOGGER)
+                ) {
+                    TagValueOutput valueOutput = TagValueOutput.createWithContext(reporter, player.registryAccess());
+                    player.saveWithoutId(valueOutput);
+                    tag = valueOutput.buildResult();
+                }
+                if (tag.contains("rolling_gate.NoResident")) return;
+                 *///?}
+                //? if <1.21.10
                 String username = player.getGameProfile().getName();
+                //? if >=1.21.10
+                /*String username = player.getGameProfile().name();*/
                 fakePlayerList.add(username, FakePlayerResident.save(player));
             });
             File file = server.getWorldPath(LevelResource.ROOT).resolve("fake_player.rg.json").toFile();

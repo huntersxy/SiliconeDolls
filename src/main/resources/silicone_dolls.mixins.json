@@ -9,7 +9,6 @@
     "EntityInvoker",
     "FishingHookMixin",
     "ItemStackMixin",
-    "PlayerAccessor",
     "PlayerListMixin",
     "PlayerMixin",
     "ServerConfigurationPacketListenerImplMixin",
@@ -19,9 +18,7 @@
     "SlotMixin",
     "combat.AquaFishingBobberEntityMixin",
     "combat.PacketDistributorMixin",
-    "combat.ServerCommonPacketListenerImplMixin",
-    "combat.SpectrumFishingHookMixin",
-    "compat.CreateContraptionColliderMixin"
+    "combat.ServerCommonPacketListenerImplMixin"
   ],
   "client": [
   ],

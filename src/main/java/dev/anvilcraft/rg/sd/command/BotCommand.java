@@ -17,6 +17,7 @@ import dev.anvilcraft.rg.sd.entity.FakePlayer;
 import dev.anvilcraft.rg.sd.entity.PlayerActionPack;
 import dev.anvilcraft.rg.sd.init.ModCommands;
 import dev.anvilcraft.rg.sd.mixin.EntityInvoker;
+//? if <1.21.10
 import dev.anvilcraft.rg.sd.mixin.PlayerAccessor;
 import dev.anvilcraft.rg.sd.util.IServerPlayerInjector;
 import dev.anvilcraft.rg.tools.FilesUtil;
@@ -32,17 +33,22 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.game.ClientboundRotateHeadPacket;
+//? if <1.21.8
 import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
+//? if >=1.21.8
+/*import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;*/
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ClientInformation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.CommonListenerCookie;
+//? if <1.21.10
 import net.minecraft.server.players.GameProfileCache;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
+//? if <1.21.10
 import net.minecraft.world.level.block.entity.SkullBlockEntity;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
@@ -221,26 +227,47 @@ public class BotCommand {
         MutableComponent desc = Component.literal(botInfo.desc).withStyle(
             Style.EMPTY
                 .applyFormat(ChatFormatting.GRAY)
+                //? if <1.21.8
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(botInfo.name)))
+                //? if >=1.21.8
+                /*.withHoverEvent(new HoverEvent.ShowText(Component.literal(botInfo.name)))*/
         );
         boolean notOnline = BOT_INFO.server.getPlayerList().getPlayerByName(botInfo.name) == null;
         MutableComponent load = Component.literal("[↑]").withStyle(
             Style.EMPTY
                 .applyFormat(notOnline ? ChatFormatting.GREEN : ChatFormatting.GRAY)
+                //? if <1.21.8
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TranslationUtil.trans("silicone_dolls.commands.button.bot.load")))
+                //? if >=1.21.8
+                /*.withHoverEvent(new HoverEvent.ShowText(TranslationUtil.trans("silicone_dolls.commands.button.bot.load")))*/
+                //? if <1.21.8
                 .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/bot load %s".formatted(botInfo.name)))
+                //? if >=1.21.8
+                /*.withClickEvent(new ClickEvent.RunCommand("/bot load %s".formatted(botInfo.name)))*/
         );
         MutableComponent remove = Component.literal("[↓]").withStyle(
             Style.EMPTY
                 .applyFormat(notOnline ? ChatFormatting.GRAY : ChatFormatting.RED)
+                //? if <1.21.8
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TranslationUtil.trans("silicone_dolls.commands.button.bot.unload")))
+                //? if >=1.21.8
+                /*.withHoverEvent(new HoverEvent.ShowText(TranslationUtil.trans("silicone_dolls.commands.button.bot.unload")))*/
+                //? if <1.21.8
                 .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/player %s kill".formatted(botInfo.name)))
+                //? if >=1.21.8
+                /*.withClickEvent(new ClickEvent.RunCommand("/player %s kill".formatted(botInfo.name)))*/
         );
         MutableComponent delete = Component.literal("[\uD83D\uDDD1]").withStyle(
             Style.EMPTY
                 .applyFormat(ChatFormatting.RED)
+                //? if <1.21.8
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TranslationUtil.trans("silicone_dolls.commands.button.bot.remove")))
+                //? if >=1.21.8
+                /*.withHoverEvent(new HoverEvent.ShowText(TranslationUtil.trans("silicone_dolls.commands.button.bot.remove")))*/
+                //? if <1.21.8
                 .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/bot remove %s".formatted(botInfo.name)))
+                //? if >=1.21.8
+                /*.withClickEvent(new ClickEvent.SuggestCommand("/bot remove %s".formatted(botInfo.name)))*/
         );
         MutableComponent component = Component.literal("▶ ")
             .withStyle(notOnline ? ChatFormatting.RED : ChatFormatting.GREEN)
@@ -256,14 +283,20 @@ public class BotCommand {
             Component.literal("<<<").withStyle(
                 Style.EMPTY
                     .applyFormat(ChatFormatting.GREEN)
+                    //? if <1.21.8
                     .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command + " " + (page - 1)))
+                    //? if >=1.21.8
+                    /*.withClickEvent(new ClickEvent.RunCommand(command + " " + (page - 1)))*/
             );
         Component nextPage = page >= maxPage ?
             Component.literal(">>>").withStyle(ChatFormatting.GRAY) :
             Component.literal(">>>").withStyle(
                 Style.EMPTY
                     .applyFormat(ChatFormatting.GREEN)
+                    //? if <1.21.8
                     .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command + " " + (page + 1)))
+                    //? if >=1.21.8
+                    /*.withClickEvent(new ClickEvent.RunCommand(command + " " + (page + 1)))*/
             );
         context.getSource().sendSystemMessage(
             Component.literal("=======")
@@ -300,6 +333,7 @@ public class BotCommand {
         boolean success = false;
         try {
             ServerLevel worldIn = BOT_INFO.server.getLevel(botInfo.dimType);
+            //? if <1.21.8 {
             GameProfileCache.setUsesAuthentication(false);
             GameProfile gameprofile;
             try {
@@ -335,6 +369,87 @@ public class BotCommand {
             } finally {
                 GameProfileCache.setUsesAuthentication(BOT_INFO.server.isDedicatedServer() && BOT_INFO.server.usesAuthentication());
             }
+            //?}
+            //? if >=1.21.8 && <1.21.10 {
+            /*GameProfileCache.setUsesAuthentication(false);
+            GameProfile gameprofile;
+            try {
+                GameProfileCache profileCache = BOT_INFO.server.getProfileCache();
+                if (profileCache == null) gameprofile = null;
+                else gameprofile = profileCache.get(name).orElse(null);
+                if (gameprofile == null) {
+                    if (!SiliconeDollsServerRules.allowSpawningOfflinePlayers) return false;
+                    gameprofile = new GameProfile(UUIDUtil.createOfflinePlayerUUID(name), name);
+                }
+                GameProfile finalGP = gameprofile;
+                SkullBlockEntity.fetchGameProfile(gameprofile.getName()).thenAcceptAsync((p) -> {
+                    GameProfile current = finalGP;
+                    if (p.isPresent()) current = p.get();
+                    if (worldIn == null) return;
+                    FakePlayer instance = FakePlayer.create(BOT_INFO.server, worldIn, current, ClientInformation.createDefault(), false);
+                    instance.fixStartingPosition = () -> instance.snapTo(botInfo.pos.x, botInfo.pos.y, botInfo.pos.z, botInfo.facing.y, botInfo.facing.x);
+                    BOT_INFO.server.getPlayerList().placeNewPlayer(new FakeClientConnection(PacketFlow.SERVERBOUND), instance, new CommonListenerCookie(current, 0, instance.clientInformation(), false, ConnectionType.OTHER));
+                    instance.connection.teleport(botInfo.pos.x, botInfo.pos.y, botInfo.pos.z, botInfo.facing.y, botInfo.facing.x);
+                    instance.setHealth(20.0F);
+                    ((EntityInvoker) instance).invokerUnsetRemoved();
+                    AttributeInstance attribute = instance.getAttribute(Attributes.STEP_HEIGHT);
+                    if (attribute != null) attribute.setBaseValue(0.6000000238418579);
+                    instance.gameMode.changeGameModeForPlayer(botInfo.mode);
+                    BOT_INFO.server.getPlayerList().broadcastAll(new ClientboundRotateHeadPacket(instance, (byte) ((int) (instance.yHeadRot * 256.0F / 360.0F))), botInfo.dimType);
+                    BOT_INFO.server.getPlayerList()
+                        .broadcastAll(new ClientboundPlayerInfoUpdatePacket(
+                            ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER,
+                            instance
+                        ));
+                    instance.getEntityData().set(PlayerAccessor.getCustomisationData(), (byte) 127);
+                    instance.getAbilities().flying = botInfo.flying;
+                    PlayerActionPack actionPack = botInfo.actions;
+                    ((IServerPlayerInjector) instance).getActionPack().copyFrom(actionPack);
+                }, BOT_INFO.server);
+                success = true;
+            } finally {
+                GameProfileCache.setUsesAuthentication(BOT_INFO.server.isDedicatedServer() && BOT_INFO.server.usesAuthentication());
+            }
+             *///?}
+            //? if >=1.21.10 {
+            /*GameProfile gameprofile = BOT_INFO.server.services().profileResolver().fetchByName(name).orElse(null);
+            if (gameprofile == null) {
+                if (!SiliconeDollsServerRules.allowSpawningOfflinePlayers) return false;
+                gameprofile = new GameProfile(UUIDUtil.createOfflinePlayerUUID(name), name);
+            }
+            GameProfile finalGP = gameprofile;
+            BOT_INFO.server.execute(() -> {
+                GameProfile current = finalGP;
+                if (worldIn == null) return;
+                FakePlayer instance = FakePlayer.create(BOT_INFO.server, worldIn, current, ClientInformation.createDefault(), false);
+                instance.fixStartingPosition = () -> instance.snapTo(botInfo.pos.x, botInfo.pos.y, botInfo.pos.z, botInfo.facing.y, botInfo.facing.x);
+                BOT_INFO.server.getPlayerList().placeNewPlayer(
+                    new FakeClientConnection(PacketFlow.SERVERBOUND),
+                    instance,
+                    new CommonListenerCookie(current, 0, instance.clientInformation(), false, ConnectionType.OTHER)
+                );
+                instance.connection.teleport(botInfo.pos.x, botInfo.pos.y, botInfo.pos.z, botInfo.facing.y, botInfo.facing.x);
+                instance.setHealth(20.0F);
+                ((EntityInvoker) instance).invokerUnsetRemoved();
+                AttributeInstance attribute = instance.getAttribute(Attributes.STEP_HEIGHT);
+                if (attribute != null) attribute.setBaseValue(0.6000000238418579);
+                instance.gameMode.changeGameModeForPlayer(botInfo.mode);
+                BOT_INFO.server.getPlayerList()
+                    .broadcastAll(
+                        new ClientboundRotateHeadPacket(instance, (byte) (instance.yHeadRot * 256 / 360)),
+                        botInfo.dimType
+                    );
+                BOT_INFO.server.getPlayerList()
+                    .broadcastAll(new ClientboundPlayerInfoUpdatePacket(
+                        ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER,
+                        instance
+                    ));
+                instance.getAbilities().flying = botInfo.flying;
+                PlayerActionPack actionPack = botInfo.actions;
+                ((IServerPlayerInjector) instance).getActionPack().copyFrom(actionPack);
+            });
+            success = true;
+             *///?}
         } catch (Exception e) {
             SiliconeDolls.LOGGER.error(e.getMessage(), e);
         }
@@ -356,10 +471,16 @@ public class BotCommand {
         CommandSourceStack source = context.getSource();
         ServerPlayer p;
         if (!((p = EntityArgument.getPlayer(context, "player")) instanceof FakePlayer player)) {
+            //? if <1.21.10
             source.sendFailure(TranslationUtil.trans("silicone_dolls.commands.tips.not_fake", p.getGameProfile().getName()));
+            //? if >=1.21.10
+            /*source.sendFailure(TranslationUtil.trans("silicone_dolls.commands.tips.not_fake", p.getGameProfile().name()));*/
             return 0;
         }
+        //? if <1.21.10
         String name = player.getGameProfile().getName();
+        //? if >=1.21.10
+        /*String name = player.getGameProfile().name();*/
         if (BOT_INFO.map.containsKey(name)) {
             source.sendFailure(TranslationUtil.trans("silicone_dolls.commands.tips.already_save", name));
             return 0;
@@ -613,31 +734,58 @@ public class BotCommand {
         MutableComponent name = Component.literal(botGroupInfo.name).withStyle(
             Style.EMPTY
                 .applyFormat(ChatFormatting.GRAY)
+                //? if <1.21.8
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(botGroupInfo.name)))
+                //? if >=1.21.8
+                /*.withHoverEvent(new HoverEvent.ShowText(Component.literal(botGroupInfo.name)))*/
         );
         MutableComponent load = Component.literal("[↑]").withStyle(
             Style.EMPTY
                 .applyFormat(ChatFormatting.GREEN)
+                //? if <1.21.8
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TranslationUtil.trans("silicone_dolls.commands.button.bot_group.load")))
+                //? if >=1.21.8
+                /*.withHoverEvent(new HoverEvent.ShowText(TranslationUtil.trans("silicone_dolls.commands.button.bot_group.load")))*/
+                //? if <1.21.8
                 .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/bot group load %s".formatted(botGroupInfo.name)))
+                //? if >=1.21.8
+                /*.withClickEvent(new ClickEvent.RunCommand("/bot group load %s".formatted(botGroupInfo.name)))*/
         );
         MutableComponent remove = Component.literal("[↓]").withStyle(
             Style.EMPTY
                 .applyFormat(ChatFormatting.RED)
+                //? if <1.21.8
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TranslationUtil.trans("silicone_dolls.commands.button.bot_group.unload")))
+                //? if >=1.21.8
+                /*.withHoverEvent(new HoverEvent.ShowText(TranslationUtil.trans("silicone_dolls.commands.button.bot_group.unload")))*/
+                //? if <1.21.8
                 .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/bot group unload %s".formatted(botGroupInfo.name)))
+                //? if >=1.21.8
+                /*.withClickEvent(new ClickEvent.RunCommand("/bot group unload %s".formatted(botGroupInfo.name)))*/
         );
         MutableComponent info = Component.literal("[i]").withStyle(
             Style.EMPTY
                 .applyFormat(ChatFormatting.RED)
+                //? if <1.21.8
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TranslationUtil.trans("silicone_dolls.commands.button.bot_group.info")))
+                //? if >=1.21.8
+                /*.withHoverEvent(new HoverEvent.ShowText(TranslationUtil.trans("silicone_dolls.commands.button.bot_group.info")))*/
+                //? if <1.21.8
                 .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/bot group info %s".formatted(botGroupInfo.name)))
+                //? if >=1.21.8
+                /*.withClickEvent(new ClickEvent.RunCommand("/bot group info %s".formatted(botGroupInfo.name)))*/
         );
         MutableComponent delete = Component.literal("[\uD83D\uDDD1]").withStyle(
             Style.EMPTY
                 .applyFormat(ChatFormatting.RED)
+                //? if <1.21.8
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TranslationUtil.trans("silicone_dolls.commands.button.bot_group.remove")))
+                //? if >=1.21.8
+                /*.withHoverEvent(new HoverEvent.ShowText(TranslationUtil.trans("silicone_dolls.commands.button.bot_group.remove")))*/
+                //? if <1.21.8
                 .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/bot group remove %s".formatted(botGroupInfo.name)))
+                //? if >=1.21.8
+                /*.withClickEvent(new ClickEvent.SuggestCommand("/bot group remove %s".formatted(botGroupInfo.name)))*/
         );
         MutableComponent component = Component.literal("▶ ").append(name);
         component.append(" ").append(load);

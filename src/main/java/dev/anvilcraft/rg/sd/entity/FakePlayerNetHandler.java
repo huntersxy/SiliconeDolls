@@ -8,9 +8,11 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
+//? if <1.21.8
 import net.minecraft.world.entity.RelativeMovement;
 import org.jetbrains.annotations.NotNull;
 
+//? if <1.21.8
 import java.util.Set;
 
 public class FakePlayerNetHandler extends ServerGamePacketListenerImpl {
@@ -29,6 +31,7 @@ public class FakePlayerNetHandler extends ServerGamePacketListenerImpl {
         }
     }
 
+    //? if <1.21.8 {
     @Override
     public void teleport(double d, double e, double f, float g, float h, @NotNull Set<RelativeMovement> set) {
         super.teleport(d, e, f, g, h, set);
@@ -39,4 +42,16 @@ public class FakePlayerNetHandler extends ServerGamePacketListenerImpl {
             player.serverLevel().getChunkSource().move(player);
         }
     }
+    //?} else {
+    /*@Override
+    public void teleport(double d, double e, double f, float g, float h) {
+        super.teleport(d, e, f, g, h);
+        //noinspection resource
+        if (player.level().getPlayerByUUID(player.getUUID()) != null) {
+            resetPosition();
+            //noinspection resource
+            player.level().getChunkSource().move(player);
+        }
+    }
+     *///?}
 }

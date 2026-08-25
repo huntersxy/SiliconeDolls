@@ -61,13 +61,25 @@ public class ModelCommand {
         if (ModelCommand.textureId == null && !ModelCommand.init(dispatcher)) return 0;
         ServerPlayer player = PlayerCommand.getPlayerByPermission(context);
         if (player == null) return 0;
+        //? if <1.21.10
         MinecraftServer server = player.getServer();
+        //? if >=1.21.10
+        /*MinecraftServer server = player.level().getServer();*/
         if (server == null) return 0;
         String modelId = StringArgumentType.getString(context, "model_id");
         String textureId = StringArgumentType.getString(context, "texture_id");
         server.getCommands().performPrefixedCommand(
-            context.getSource().withPermission(2),
-            "ysm model set %s \"%s\" \"%s\"".formatted(player.getGameProfile().getName(), modelId, textureId)
+        //? if <26
+        context.getSource().withPermission(2),
+        //? if >=26
+        /*context.getSource().withPermission(net.minecraft.server.permissions.LevelBasedPermissionSet.GAMEMASTER),*/
+        "ysm model set %s \"%s\" \"%s\"".formatted(
+            //? if <1.21.10
+            player.getGameProfile().getName(),
+            //? if >=1.21.10
+            /*player.getGameProfile().name(),*/
+            modelId, textureId
+        )
         );
         return 1;
     }

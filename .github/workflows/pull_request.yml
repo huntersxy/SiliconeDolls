@@ -3,19 +3,29 @@ on:
   workflow_dispatch:
   pull_request:
     branches:
+      - stonecutter
       - releases/**
     paths:
       - src/**
-      - common/**
-      - fabric/**
-      - forge/**
-      - build.gradle
-      - gradle.properties
-      - settings.gradle
+      - versions/**
+      - buildSrc/**
+      - build.gradle.kts
+      - settings.gradle.kts
+      - stonecutter.gradle.kts
+      - gradle/**
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { mcversion: "1.21.1", mc-index: 0, java: "21", rg-modrinth: "1.1.0+build.51" }
+          - { mcversion: "1.21.8", mc-index: 1, java: "21", rg-modrinth: "1.1.0+build.62" }
+          - { mcversion: "1.21.10", mc-index: 2, java: "21", rg-modrinth: "1.1.0+build.68" }
+          - { mcversion: "26.1.2", mc-index: 3, java: "25", rg-modrinth: "1.1.0+build.69" }
+          - { mcversion: "26.2", mc-index: 4, java: "25", rg-modrinth: "1.1.0+build.70" }
     env:
       CI_BUILD: true
       PR_BUILD: true
@@ -30,39 +40,45 @@ jobs:
         id: 'properties'
         uses: christian-draeger/read-properties@1.1.1
         with:
-          path: gradle.properties
-          properties: 'mod_id mod_name java_version rolling_gate_version'
+          path: versions/${{ matrix.mcversion }}/gradle.properties
+          properties: 'neo_version minecraft_version'
 
-      - name: Setup Java ${{ steps.properties.outputs.java_version }}
+      - name: Setup Java ${{ matrix.java }}
         uses: actions/setup-java@v3.6.0
         with:
           distribution: zulu
-          java-version: ${{ steps.properties.outputs.java_version }}
+          java-version: ${{ matrix.java }}
 
       - name: make gradle wrapper executable
         if: ${{ runner.os != 'Windows' }}
         run: chmod +x ./gradlew
 
-      - name: Build with Gradle
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
       - name: Build
-        run: ./gradlew build
+        run: ./gradlew :${{ matrix.mcversion }}:build -Pmc_index=${{ matrix.mc-index }}
 
       - name: Get Version
         id: version
         run: |
-          MESSAGE=$(ls build/libs/* | grep sources.jar -v | grep shadow.jar -v | grep slim.jar -v | awk -F '${{ steps.properties.outputs.mod_name }}-neoforge-1.21.1-|.jar' '{print $2}')
-          echo "version=$MESSAGE" >> $GITHUB_OUTPUT
+          JAR=$(ls versions/${{ matrix.mcversion }}/build/libs/*.jar | grep -v sources.jar)
+          VERSION=$(basename "$JAR" .jar | sed "s/^SiliconeDolls-neoforge-${{ matrix.mcversion }}-//")
+          echo "jar=$(basename "$JAR")" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: capture build artifacts
         uses: actions/upload-artifact@v4.3.3
         with:
-          name: "${{ steps.properties.outputs.mod_name }} ${{ steps.version.outputs.version }}"
-          path: build/libs/${{ steps.properties.outputs.mod_name }}-neoforge-1.21.1-${{ steps.version.outputs.version }}.jar
+          name: "${{ matrix.mcversion }} ${{ steps.version.outputs.version }}"
+          path: versions/${{ matrix.mcversion }}/build/libs/${{ steps.version.outputs.jar }}
 
       - name: gametest
-        uses: Anvil-Dev/dedicated-server-launch-test@1.21.1-neoforge
+        timeout-minutes: 15
+        uses: Anvil-Dev/dedicated-server-launch-test@universal
         with:
-          mod: build/libs/${{ steps.properties.outputs.mod_name }}-neoforge-1.21.1-${{ steps.version.outputs.version }}.jar
-          extra-mods: rolling-gate:${{ steps.properties.outputs.rolling_gate_version }}
+          minecraft_version: ${{ steps.properties.outputs.minecraft_version }}
+          mod_loader: neoforge
+          loader_version: ${{ steps.properties.outputs.neo_version }}
+          mods: versions/${{ matrix.mcversion }}/build/libs/${{ steps.version.outputs.jar }}
+          extra-mods: rolling-gate:${{ matrix.rg-modrinth }}

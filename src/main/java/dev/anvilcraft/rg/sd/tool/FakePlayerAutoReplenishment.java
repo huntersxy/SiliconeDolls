@@ -8,9 +8,15 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
 import org.jetbrains.annotations.NotNull;
 
+//? if >=26
+/*import java.util.List;*/
+
 public class FakePlayerAutoReplenishment {
     public static void autoReplenishment(@NotNull Player fakePlayer) {
+        //? if <1.21.8
         NonNullList<ItemStack> itemStackList = fakePlayer.getInventory().items;
+        //? if >=1.21.8
+        /*NonNullList<ItemStack> itemStackList = fakePlayer.getInventory().getNonEquipmentItems();*/
         replenishment(fakePlayer.getMainHandItem(), itemStackList);
         replenishment(fakePlayer.getOffhandItem(), itemStackList);
     }
@@ -57,6 +63,7 @@ public class FakePlayerAutoReplenishment {
         ItemContainerContents contents = shulkerBox.get(DataComponents.CONTAINER);
         if (contents == null) return 0;
         // 潜影盒没有容器组件
+        //? if <26 {
         for (ItemStack stack : contents.nonEmptyItems()) {
             if (ItemStack.isSameItemSameComponents(itemStack, stack)) {
                 int temp;
@@ -72,6 +79,25 @@ public class FakePlayerAutoReplenishment {
             }
         }
         return 0;
+        //?} else {
+        /*List<ItemStack> stacks = contents.allItemsCopyStream().toList();
+        for (ItemStack stack : stacks) {
+            if (ItemStack.isSameItemSameComponents(itemStack, stack)) {
+                int temp;
+                if (stack.getCount() >= count) {
+                    stack.shrink(count);
+                    temp = count;
+                } else {
+                    temp = stack.getCount();
+                    stack.setCount(0);
+                }
+                shulkerBox.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(stacks));
+                ifIsEmptyClear(shulkerBox);
+                return temp;
+            }
+        }
+        return 0;
+         *///?}
     }
 
     // 如果潜影盒为空，将物品栏组件替换为空以保证潜影盒堆叠的正常运行

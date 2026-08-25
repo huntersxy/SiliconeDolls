@@ -14,7 +14,10 @@ import lombok.Getter;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+//? if <1.21.8
 import net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket;
+//? if >=1.21.8
+/*import net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket;*/
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -22,11 +25,20 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
+//? if <26
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
+//? if >=26
+/*import net.minecraft.world.entity.animal.equine.AbstractHorse;*/
 import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.entity.player.Inventory;
+//? if <26
 import net.minecraft.world.entity.vehicle.Boat;
+//? if >=26
+/*import net.minecraft.world.entity.vehicle.boat.Boat;*/
+//? if <26
 import net.minecraft.world.entity.vehicle.Minecart;
+//? if >=26
+/*import net.minecraft.world.entity.vehicle.minecart.Minecart;*/
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -190,7 +202,10 @@ public class PlayerActionPack {
         if (closest instanceof AbstractHorse && onlyRideables)
             ((AbstractHorse) closest).mobInteract(player, InteractionHand.MAIN_HAND);
         else
+            //? if <1.21.10
             player.startRiding(closest, true);
+            //? if >=1.21.10
+            /*player.startRiding(closest);*/
         return this;
     }
 
@@ -255,14 +270,23 @@ public class PlayerActionPack {
         } else // one slot
         {
             if (selectedSlot == -1)
-                selectedSlot = inv.selected;
+                //? if <1.21.8
+            selectedSlot = inv.selected;
+            //? if >=1.21.8
+            /*selectedSlot = inv.getSelectedSlot();*/
             dropItemFromSlot(selectedSlot, dropAll);
         }
     }
 
     public void setSlot(int slot) {
+        //? if <1.21.8
         player.getInventory().selected = slot - 1;
+        //? if >=1.21.8
+        /*player.getInventory().setSelectedSlot(slot - 1);*/
+        //? if <1.21.8
         player.connection.send(new ClientboundSetCarriedItemPacket(slot - 1));
+        //? if >=1.21.8
+        /*player.connection.send(new ClientboundSetHeldSlotPacket(slot - 1));*/
     }
 
     public static class Serializer implements JsonDeserializer<PlayerActionPack>, JsonSerializer<PlayerActionPack> {
@@ -363,11 +387,18 @@ public class PlayerActionPack {
                     switch (hit.getType()) {
                         case BLOCK: {
                             player.resetLastActionTime();
+                            //? if <1.21.8
                             ServerLevel world = player.serverLevel();
+                            //? if >=1.21.8
+                            /*ServerLevel world = player.level();*/
                             BlockHitResult blockHit = (BlockHitResult) hit;
                             BlockPos pos = blockHit.getBlockPos();
                             Direction side = blockHit.getDirection();
+                            //? if <1.21.8 {
+                            //? if <1.21.8
                             if (pos.getY() < player.level().getMaxBuildHeight() - (side == Direction.UP ? 1 : 0) && world.mayInteract(player, pos)) {
+                            //? if >=1.21.8
+                            /*if (pos.getY() < player.level().getMaxY() - (side == Direction.UP ? 1 : 0) && world.mayInteract(player, pos)) {*/
                                 InteractionResult result = player.gameMode.useItemOn(player, world, player.getItemInHand(hand), hand, blockHit);
                                 if (result.consumesAction()) {
                                     if (result.shouldSwing()) player.swing(hand);
@@ -375,6 +406,22 @@ public class PlayerActionPack {
                                     return true;
                                 }
                             }
+                            //?} else {
+                            /*if (pos.getY() < player.level().getMaxY() - (side == Direction.UP ? 1 : 0) && world.mayInteract(player, pos)) {
+                                InteractionResult result = player.gameMode.useItemOn(
+                                    player,
+                                    world,
+                                    player.getItemInHand(hand),
+                                    hand,
+                                    blockHit
+                                );
+                                if (result instanceof InteractionResult.Success success) {
+                                    if (success.swingSource() == InteractionResult.SwingSource.SERVER) player.swing(hand);
+                                    ap.itemUseCooldown = 3;
+                                    return true;
+                                }
+                            }
+                             *///?}
                             break;
                         }
                         case ENTITY: {
@@ -384,12 +431,18 @@ public class PlayerActionPack {
                             boolean handWasEmpty = player.getItemInHand(hand).isEmpty();
                             boolean itemFrameEmpty = (entity instanceof ItemFrame) && ((ItemFrame) entity).getItem().isEmpty();
                             Vec3 relativeHitPos = entityHit.getLocation().subtract(entity.getX(), entity.getY(), entity.getZ());
+                            //? if <26
                             if (entity.interactAt(player, relativeHitPos, hand).consumesAction()) {
+                            //? if >=26
+                            /*if (entity.interact(player, hand, relativeHitPos).consumesAction()) {*/
                                 ap.itemUseCooldown = 3;
                                 return true;
                             }
                             // fix for SS itemframe always returns CONSUME even if no action is performed
+                            //? if <26
                             if (player.interactOn(entity, hand).consumesAction() && !(handWasEmpty && itemFrameEmpty)) {
+                            //? if >=26
+                            /*if (player.interactOn(entity, hand, relativeHitPos).consumesAction() && !(handWasEmpty && itemFrameEmpty)) {*/
                                 ap.itemUseCooldown = 3;
                                 return true;
                             }
@@ -445,14 +498,23 @@ public class PlayerActionPack {
                         BlockState state = player.level().getBlockState(pos);
                         boolean blockBroken = false;
                         if (player.gameMode.getGameModeForPlayer().isCreative()) {
+                            //? if <1.21.8
                             player.gameMode.handleBlockBreakAction(pos, ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, side, player.level().getMaxBuildHeight(), -1);
+                            //? if >=1.21.8
+                            /*player.gameMode.handleBlockBreakAction(pos, ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, side, player.level().getMaxY(), -1);*/
                             ap.blockHitDelay = 5;
                             blockBroken = true;
                         } else if (ap.currentBlock == null || !ap.currentBlock.equals(pos)) {
                             if (ap.currentBlock != null) {
+                                //? if <1.21.8
                                 player.gameMode.handleBlockBreakAction(ap.currentBlock, ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK, side, player.level().getMaxBuildHeight(), -1);
+                                //? if >=1.21.8
+                                /*player.gameMode.handleBlockBreakAction(ap.currentBlock, ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK, side, player.level().getMaxY(), -1);*/
                             }
+                            //? if <1.21.8
                             player.gameMode.handleBlockBreakAction(pos, ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, side, player.level().getMaxBuildHeight(), -1);
+                            //? if >=1.21.8
+                            /*player.gameMode.handleBlockBreakAction(pos, ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, side, player.level().getMaxY(), -1);*/
                             boolean notAir = !state.isAir();
                             if (notAir && ap.curBlockDamageMP == 0) {
                                 state.attack(player.level(), pos, player);
@@ -468,7 +530,10 @@ public class PlayerActionPack {
                         } else {
                             ap.curBlockDamageMP += state.getDestroyProgress(player, player.level(), pos);
                             if (ap.curBlockDamageMP >= 1) {
+                                //? if <1.21.8
                                 player.gameMode.handleBlockBreakAction(pos, ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK, side, player.level().getMaxBuildHeight(), -1);
+                                //? if >=1.21.8
+                                /*player.gameMode.handleBlockBreakAction(pos, ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK, side, player.level().getMaxY(), -1);*/
                                 ap.currentBlock = null;
                                 ap.blockHitDelay = 5;
                                 blockBroken = true;
@@ -489,7 +554,10 @@ public class PlayerActionPack {
                 PlayerActionPack ap = ((IServerPlayerInjector) player).getActionPack();
                 if (ap.currentBlock == null) return;
                 player.level().destroyBlockProgress(-1, ap.currentBlock, -1);
+                //? if <1.21.8
                 player.gameMode.handleBlockBreakAction(ap.currentBlock, ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK, Direction.DOWN, player.level().getMaxBuildHeight(), -1);
+                //? if >=1.21.8
+                /*player.gameMode.handleBlockBreakAction(ap.currentBlock, ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK, Direction.DOWN, player.level().getMaxY(), -1);*/
                 ap.currentBlock = null;
             }
         },
@@ -534,6 +602,7 @@ public class PlayerActionPack {
                 player.setItemInHand(InteractionHand.MAIN_HAND, itemStack_1);
                 return false;
             }
+        //? if <1.21.8 {
         },
         SNEAK {
             @Override
@@ -547,6 +616,9 @@ public class PlayerActionPack {
                 ((IServerPlayerInjector) player).getActionPack().setSneaking(false);
             }
         };
+        //?} else {
+        /*};
+         *///?}
 
         abstract boolean execute(ServerPlayer player, Action action);
 
@@ -665,3 +737,4 @@ public class PlayerActionPack {
         }
     }
 }
+

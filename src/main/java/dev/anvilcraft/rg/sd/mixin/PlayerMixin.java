@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(Player.class)
 abstract class PlayerMixin {
+    //? if <26 {
     @Redirect(
         method = "attack",
         at = @At(
@@ -21,4 +22,18 @@ abstract class PlayerMixin {
     private boolean attack(@NotNull Entity target) {
         return target.hurtMarked && !(target instanceof FakePlayer);
     }
+    //?} else {
+    /*@Redirect(
+        method = "attack(Lnet/minecraft/world/entity/Entity;)V",
+        at = @At(
+            value = "FIELD",
+            target = "Lnet/minecraft/world/entity/Entity;hurtMarked:Z",
+            ordinal = 0
+        ),
+        require = 0
+    )
+    private boolean attack(@NotNull Entity target) {
+        return target.hurtMarked && !(target instanceof FakePlayer);
+    }
+     *///?}
 }

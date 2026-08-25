@@ -69,7 +69,10 @@ public class PlayerCommand {
                                                                     .executes(PlayerCommand::spawnPlayer)
                                                                     .then(
                                                                         Commands.literal("in")
+                                                                            //? if <26
                                                                             .requires(source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                                                                            //? if >=26
+                                                                            /*.requires(source -> Commands.LEVEL_GAMEMASTERS.check(source.permissions()))*/
                                                                             .then(
                                                                                 Commands.argument("gamemode", GameModeArgument.gameMode())
                                                                                     .executes(PlayerCommand::spawnPlayer)
@@ -101,6 +104,7 @@ public class PlayerCommand {
                             )
                     )
             )
+            //? if <1.21.8 {
             .then(
                 Commands.literal("sneak")
                     .executes(ctx -> sneak(ctx, "continue"))
@@ -118,6 +122,16 @@ public class PlayerCommand {
                 Commands.literal("unsneak")
                     .executes(PlayerCommand::unsneak)
             )
+            //?} else {
+            /*.then(
+                Commands.literal("sneak")
+                    .executes(ctx -> sneak(ctx, true))
+            )
+            .then(
+                Commands.literal("unsneak")
+                    .executes(ctx -> sneak(ctx, false))
+            )
+             *///?}
             .then(
                 Commands.literal("sprint")
                     .executes(ctx -> sprint(ctx, true))
@@ -299,7 +313,10 @@ public class PlayerCommand {
         if (player == null) return 0;
         if (player instanceof FakePlayer) return 0;
         CommandSourceStack source = context.getSource();
+        //? if <26
         boolean isOp = source.hasPermission(Commands.LEVEL_GAMEMASTERS);
+        //? if >=26
+        /*boolean isOp = Commands.LEVEL_GAMEMASTERS.check(source.permissions());*/
         Entity entity = source.getEntity();
         boolean isSelf = entity == player;
         if (!isOp && !isSelf) {
@@ -346,6 +363,7 @@ public class PlayerCommand {
         return 1;
     }
 
+    //? if <1.21.8 {
     public static int sneak(@NotNull CommandContext<CommandSourceStack> context, String interval) {
         ServerPlayer player = getPlayerByPermission(context);
         if (player == null) return 0;
@@ -375,6 +393,7 @@ public class PlayerCommand {
         actionPack.setSneaking(false);
         return 1;
     }
+    //?}
 
     @Deprecated
     public static int sneak(@NotNull CommandContext<CommandSourceStack> context, boolean doSneak) {
@@ -382,11 +401,13 @@ public class PlayerCommand {
         if (player == null) return 0;
         PlayerActionPack actionPack = ((IServerPlayerInjector) player).getActionPack();
         actionPack.setSneaking(doSneak);
+        //? if <1.21.8 {
         if (doSneak) {
             actionPack.start(PlayerActionPack.ActionType.SNEAK, PlayerActionPack.Action.continuous());
         } else {
             actionPack.start(PlayerActionPack.ActionType.SNEAK, null);
         }
+        //?}
         return 1;
     }
 
@@ -570,7 +591,10 @@ public class PlayerCommand {
         if (player == null) return null;
         if (player instanceof FakePlayer fakePlayer) return fakePlayer;
         CommandSourceStack stack = context.getSource();
+        //? if <26
         if (stack.hasPermission(Commands.LEVEL_GAMEMASTERS)) return player;
+        //? if >=26
+        /*if (Commands.LEVEL_GAMEMASTERS.check(stack.permissions())) return player;*/
         if (stack.getPlayer() == player) return player;
         stack.sendFailure(TranslationUtil.trans("silicone_dolls.commands.tips.no_permission", player.getName().getString()).withStyle(ChatFormatting.RED));
         return null;
