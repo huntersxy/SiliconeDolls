@@ -602,7 +602,6 @@ public class PlayerActionPack {
                 player.setItemInHand(InteractionHand.MAIN_HAND, itemStack_1);
                 return false;
             }
-        //? if <1.21.8 {
         },
         SNEAK {
             @Override
@@ -616,9 +615,6 @@ public class PlayerActionPack {
                 ((IServerPlayerInjector) player).getActionPack().setSneaking(false);
             }
         };
-        //?} else {
-        /*};
-         *///?}
 
         abstract boolean execute(ServerPlayer player, Action action);
 

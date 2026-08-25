@@ -104,7 +104,6 @@ public class PlayerCommand {
                             )
                     )
             )
-            //? if <1.21.8 {
             .then(
                 Commands.literal("sneak")
                     .executes(ctx -> sneak(ctx, "continue"))
@@ -122,16 +121,6 @@ public class PlayerCommand {
                 Commands.literal("unsneak")
                     .executes(PlayerCommand::unsneak)
             )
-            //?} else {
-            /*.then(
-                Commands.literal("sneak")
-                    .executes(ctx -> sneak(ctx, true))
-            )
-            .then(
-                Commands.literal("unsneak")
-                    .executes(ctx -> sneak(ctx, false))
-            )
-             *///?}
             .then(
                 Commands.literal("sprint")
                     .executes(ctx -> sprint(ctx, true))
@@ -363,7 +352,6 @@ public class PlayerCommand {
         return 1;
     }
 
-    //? if <1.21.8 {
     public static int sneak(@NotNull CommandContext<CommandSourceStack> context, String interval) {
         ServerPlayer player = getPlayerByPermission(context);
         if (player == null) return 0;
@@ -393,7 +381,6 @@ public class PlayerCommand {
         actionPack.setSneaking(false);
         return 1;
     }
-    //?}
 
     @Deprecated
     public static int sneak(@NotNull CommandContext<CommandSourceStack> context, boolean doSneak) {
@@ -401,13 +388,11 @@ public class PlayerCommand {
         if (player == null) return 0;
         PlayerActionPack actionPack = ((IServerPlayerInjector) player).getActionPack();
         actionPack.setSneaking(doSneak);
-        //? if <1.21.8 {
         if (doSneak) {
             actionPack.start(PlayerActionPack.ActionType.SNEAK, PlayerActionPack.Action.continuous());
         } else {
             actionPack.start(PlayerActionPack.ActionType.SNEAK, null);
         }
-        //?}
         return 1;
     }
 
