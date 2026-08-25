@@ -169,9 +169,15 @@ neoForge {
     ideSyncTask(generateModMetadata)
 }
 
+val rollingGateJar = providers.gradleProperty("rolling_gate_jar").orNull
+
 dependencies {
-    // Rolling Gate
-    implementation("dev.anvilcraft.rg:RollingGate:${property("rolling_gate_version")}")
+    // Use the Stonecutter-built prerequisite in CI/workspace integration; fall back to Maven for standalone builds.
+    if (rollingGateJar != null) {
+        implementation(files(rollingGateJar))
+    } else {
+        implementation("dev.anvilcraft.rg:RollingGate:${property("rolling_gate_version")}")
+    }
 
     // Mod Compat - Aquaculture 2 (coordinates differ per Minecraft version)
     when {

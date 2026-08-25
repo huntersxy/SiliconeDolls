@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # rg_modrinth = latest RollingGate release published on Modrinth for that game version
+          # rg_modrinth is used only for published dependency metadata; CI tests the local Stonecutter jar
           - { mcversion: "1.21.1", mc-index: 0, java: "21", game-versions: "1.21.1", rg-modrinth: "1.1.0+build.51" }
           - { mcversion: "1.21.8", mc-index: 1, java: "21", game-versions: "1.21.8", rg-modrinth: "1.1.0+build.62" }
           - { mcversion: "1.21.10", mc-index: 2, java: "21", game-versions: "1.21.10", rg-modrinth: "1.1.0+build.68" }
@@ -33,6 +33,13 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v4
+
+      - name: checkout Stonecutter RollingGate
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/RollingGate
+          ref: stonecutter
+          path: rolling-gate
 
       - name: validate gradle wrapper
         uses: gradle/actions/wrapper-validation@v3
@@ -57,8 +64,21 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Build
+      - name: Build Stonecutter RollingGate
+        working-directory: rolling-gate
         run: ./gradlew :${{ matrix.mcversion }}:build -Pmc_index=${{ matrix.mc-index }}
+
+      - name: Get RollingGate artifact
+        id: rolling_gate_artifact
+        working-directory: rolling-gate
+        shell: bash
+        run: |
+          jar=$(find versions/${{ matrix.mcversion }}/build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*sources.jar' -print -quit)
+          test -n "$jar"
+          echo "jar=$jar" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: ./gradlew :${{ matrix.mcversion }}:build -Pmc_index=${{ matrix.mc-index }} -Prolling_gate_jar=rolling-gate/${{ steps.rolling_gate_artifact.outputs.jar }}
 
       - name: Get Version
         id: version
@@ -89,8 +109,9 @@ jobs:
           minecraft_version: ${{ steps.properties.outputs.minecraft_version }}
           mod_loader: neoforge
           loader_version: ${{ steps.properties.outputs.neo_version }}
-          mods: versions/${{ matrix.mcversion }}/build/libs/${{ steps.version.outputs.jar }}
-          extra-mods: rolling-gate:${{ matrix.rg-modrinth }}
+          mods: |
+            versions/${{ matrix.mcversion }}/build/libs/${{ steps.version.outputs.jar }}
+            rolling-gate/${{ steps.rolling_gate_artifact.outputs.jar }}
 
       - name: publish neoforge mc mod
         uses: Kir-Antipov/mc-publish@v3.3
