@@ -79,7 +79,7 @@ jobs:
           echo "jar=$jar" >> "$GITHUB_OUTPUT"
 
       - name: Build
-        run: ./gradlew :${{ matrix.mcversion }}:build -Pmc_index=${{ matrix.mc-index }} -Prolling_gate_jar=rolling-gate/${{ steps.rolling_gate_artifact.outputs.jar }}
+        run: ./gradlew :${{ matrix.mcversion }}:build -Pmc_index=${{ matrix.mc-index }} -Prolling_gate_jar=${{ github.workspace }}/rolling-gate/${{ steps.rolling_gate_artifact.outputs.jar }}
 
       - name: Get Version
         id: version
