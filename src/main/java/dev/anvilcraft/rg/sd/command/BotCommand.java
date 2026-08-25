@@ -267,7 +267,7 @@ public class BotCommand {
                 //? if <1.21.8
                 .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/bot remove %s".formatted(botInfo.name)))
                 //? if >=1.21.8
-                /*.withClickEvent(new ClickEvent.SuggestCommand("/bot remove %s".formatted(botInfo.name)))*/
+                /*.withClickEvent(new ClickEvent.RunCommand("/bot remove %s".formatted(botInfo.name)))*/
         );
         MutableComponent component = Component.literal("▶ ")
             .withStyle(notOnline ? ChatFormatting.RED : ChatFormatting.GREEN)
