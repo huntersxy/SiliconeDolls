@@ -169,7 +169,7 @@ neoForge {
     ideSyncTask(generateModMetadata)
 }
 
-val rollingGateJar = providers.gradleProperty("rolling_gate_jar").orNull
+val rollingGateJar = providers.gradleProperty("rolling_gate_jar").orNull?.let { rootProject.file(it) }
 
 dependencies {
     // Use the Stonecutter-built prerequisite in CI/workspace integration; fall back to Maven for standalone builds.
