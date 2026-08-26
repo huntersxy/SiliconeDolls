@@ -30,6 +30,14 @@ jobs:
       - name: Checkout SiliconeDolls
         uses: actions/checkout@v4
 
+      - name: Read Mod version
+        id: mod_version
+        shell: bash
+        run: |
+          version=$(sed -n 's/^mod_version=//p' gradle.properties | head -n 1)
+          test -n "$version"
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
       - name: Checkout Stonecutter RollingGate
         uses: actions/checkout@v4
         with:
@@ -92,7 +100,7 @@ jobs:
       - name: Upload debug artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: SiliconeDolls-${{ matrix.mcversion }}-build-${{ github.run_number }}
+          name: SiliconeDolls-${{ matrix.mcversion }}-v${{ steps.mod_version.outputs.value }}-build-${{ github.run_number }}
           path: |
             versions/${{ matrix.mcversion }}/build/libs/${{ steps.addon_artifact.outputs.name }}
             rolling-gate/versions/${{ matrix.mcversion }}/build/libs/${{ steps.rolling_gate_artifact.outputs.name }}
