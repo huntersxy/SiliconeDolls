@@ -8,23 +8,15 @@ plugins {
 }
 
 val modVersion = property("mod_version") as String
-// Version scheme follows upstream convention: 1.0.0+<build|pr>.<N> (Minecraft target is conveyed by the jar name).
-// The mc_index property makes N unique per Minecraft version when a CI run builds all of them at once.
-val ciRun = System.getenv("CI_BUILD") != "false"
-val buildType = if (ciRun && System.getenv("PR_BUILD") != "false") "pr" else "build"
-val runNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
-val mcIndex = providers.gradleProperty("mc_index").orNull?.toIntOrNull()
-val buildNumber = when {
-    !ciRun -> null
-    mcIndex != null && runNumber != null -> (runNumber * 100 + mcIndex).toString()
-    else -> System.getenv("GITHUB_RUN_NUMBER")
-}
-version = modVersion + (buildNumber?.let { "+$buildType.$it" } ?: "")
+// Build labels identify debug/CI artifacts in the file name only; the Mod version stays stable.
+val buildLabel = providers.gradleProperty("build_label").orNull?.trim()?.takeIf { it.isNotEmpty() }
+version = modVersion
 group = property("mod_group_id") as String
 
 base {
     archivesName = "${property("mod_name")}-neoforge-${sc.current.version}"
 }
+
 
 // Minecraft 26.x requires Java 25, older versions run on Java 21
 val requiredJava = when {
@@ -97,6 +89,7 @@ val replaceProperties = mapOf(
     "mod_version" to version,
     "mod_authors" to property("mod_authors"),
     "mod_description" to property("mod_description"),
+    "rolling_gate_version" to property("rolling_gate_version"),
     "extra_mixins" to extraMixins,
 )
 
@@ -232,6 +225,16 @@ tasks.register<Copy>("buildAndCollect") {
     dependsOn(tasks.named("build"))
     from(tasks.named("jar").map { (it as Jar).archiveFile }, tasks.named("sourcesJar").map { (it as Jar).archiveFile })
     into(rootProject.layout.buildDirectory.dir("libs/${project.property("mod_version")}"))
+}
+
+
+tasks.withType<Jar>().matching { it.name == "jar" || it.name == "sourcesJar" }.configureEach {
+    buildLabel?.let { label ->
+        when (name) {
+            "jar" -> archiveClassifier.set(label)
+            "sourcesJar" -> archiveClassifier.set("$label-sources")
+        }
+    }
 }
 
 publishing {

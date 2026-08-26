@@ -1,0 +1,109 @@
+name: Fork Debug Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - stonecutter
+      - releases/**
+  pull_request:
+    branches:
+      - stonecutter
+      - releases/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { mcversion: "1.21.1", mc-index: 0, java: "21" }
+          - { mcversion: "1.21.8", mc-index: 1, java: "21" }
+          - { mcversion: "1.21.10", mc-index: 2, java: "21" }
+          - { mcversion: "26.1.2", mc-index: 3, java: "25" }
+          - { mcversion: "26.2", mc-index: 4, java: "25" }
+    env:
+      CI_BUILD: false
+      PR_BUILD: false
+    steps:
+      - name: Checkout SiliconeDolls
+        uses: actions/checkout@v4
+
+      - name: Checkout Stonecutter RollingGate
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/RollingGate
+          ref: stonecutter
+          path: rolling-gate
+
+      - name: Validate Gradle wrappers
+        uses: gradle/actions/wrapper-validation@v3
+
+      - name: Read Properties
+        id: properties
+        uses: christian-draeger/read-properties@1.1.1
+        with:
+          path: versions/${{ matrix.mcversion }}/gradle.properties
+          properties: 'minecraft_version neo_version'
+
+      - name: Setup Java ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: ${{ matrix.java }}
+
+      - name: Make Gradle wrappers executable
+        run: |
+          chmod +x ./gradlew
+          chmod +x rolling-gate/gradlew
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build Stonecutter RollingGate
+        working-directory: rolling-gate
+        run: ./gradlew :${{ matrix.mcversion }}:clean :${{ matrix.mcversion }}:build -Pbuild_label=rg-build.${{ github.run_number }}.${{ matrix.mc-index }}
+
+      - name: Locate RollingGate artifact
+        id: rolling_gate_artifact
+        working-directory: rolling-gate
+        shell: bash
+        run: |
+          jar=$(find versions/${{ matrix.mcversion }}/build/libs -maxdepth 1 -type f \
+            -name '*-rg-build.${{ github.run_number }}.${{ matrix.mc-index }}.jar' \
+            ! -name '*-sources.jar' -print -quit)
+          test -n "$jar"
+          echo "name=$(basename "$jar")" >> "$GITHUB_OUTPUT"
+
+      - name: Build SiliconeDolls
+        run: ./gradlew :${{ matrix.mcversion }}:clean :${{ matrix.mcversion }}:build -Pbuild_label=build.${{ github.run_number }}.${{ matrix.mc-index }} -Prolling_gate_jar=${{ github.workspace }}/rolling-gate/versions/${{ matrix.mcversion }}/build/libs/${{ steps.rolling_gate_artifact.outputs.name }}
+
+      - name: Locate SiliconeDolls artifact
+        id: addon_artifact
+        shell: bash
+        run: |
+          jar=$(find versions/${{ matrix.mcversion }}/build/libs -maxdepth 1 -type f \
+            -name '*-build.${{ github.run_number }}.${{ matrix.mc-index }}.jar' \
+            ! -name '*-sources.jar' -print -quit)
+          test -n "$jar"
+          echo "name=$(basename "$jar")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload debug artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: SiliconeDolls-${{ matrix.mcversion }}-build-${{ github.run_number }}
+          path: |
+            versions/${{ matrix.mcversion }}/build/libs/${{ steps.addon_artifact.outputs.name }}
+            rolling-gate/versions/${{ matrix.mcversion }}/build/libs/${{ steps.rolling_gate_artifact.outputs.name }}
+
+      - name: GameTest
+        timeout-minutes: 15
+        uses: Anvil-Dev/dedicated-server-launch-test@universal
+        with:
+          minecraft_version: ${{ steps.properties.outputs.minecraft_version }}
+          mod_loader: neoforge
+          loader_version: ${{ steps.properties.outputs.neo_version }}
+          mods: |
+            versions/${{ matrix.mcversion }}/build/libs/${{ steps.addon_artifact.outputs.name }}
+            rolling-gate/versions/${{ matrix.mcversion }}/build/libs/${{ steps.rolling_gate_artifact.outputs.name }}
